@@ -1,1 +1,20 @@
-<template>\n  <div>\n    <h2>User Management</h2>\n    <ul>\n      <li v-for=\"user in users\" :key=\"user.id\">\n        {{ user.name }} - {{ user.role }}\n      </li>\n    </ul>\n  </div>\n</template>\n\n<script setup>\nimport { ref } from \'vue\'\n\nconst users = ref([\n  { id: 1, name: \'John Doe\', role: \'Client\' },\n  { id: 2, name: \'Jane Smith\', role: \'Coach\' },\n  { id: 3, name: \'Peter Jones\', role: \'Parent\' }\n])\n</script>
+<template>
+  <div>
+    <h2>User Management</h2>
+    <ul>
+      <li v-for="user in users" :key="user.id">
+        {{ user.name }} - {{ user.role }}
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const users = ref([
+  { id: 1, name: 'John Doe', role: 'Client' },
+  { id: 2, name: 'Jane Smith', role: 'Coach' },
+  { id: 3, name: 'Peter Jones', role: 'Parent' }
+])
+</script>

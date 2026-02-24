@@ -1,1 +1,17 @@
-<template>\n  <div>\n    <h3>Exercises</h3>\n    <ul>\n      <li v-for=\"exercise in exercises\" :key=\"exercise.id\">{{ exercise.name }}</li>\n    </ul>\n  </div>\n</template>\n\n<script setup>\ndefineProps({\n  exercises: {\n    type: Array,\n    required: true\n  }\n})\n</script>
+<template>
+  <div>
+    <h3>Exercises</h3>
+    <ul>
+      <li v-for="exercise in exercises" :key="exercise.id">{{ exercise.name }}</li>
+    </ul>
+  </div>
+</template>
+
+<script setup>
+defineProps({
+  exercises: {
+    type: Array,
+    required: true
+  }
+})
+</script>

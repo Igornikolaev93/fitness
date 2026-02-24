@@ -1,1 +1,26 @@
-<template>\n  <div>\n    <h2>My Children</h2>\n    <ul>\n      <li v-for=\"child in children\" :key=\"child.id\">\n        {{ child.name }}\n        <button @click=\"viewWorkouts(child)\">View Workouts</button>\n      </li>\n    </ul>\n  </div>\n</template>\n\n<script setup>\nimport { ref } from \'vue\'\n\nconst children = ref([\n  { id: 1, name: \'Child A\' },\n  { id: 2, name: \'Child B\' }\n])\n\nconst emit = defineEmits([\'view-workouts\'])\n\nconst viewWorkouts = (child) => {\n  emit(\'view-workouts\', child)\n}\n</script>
+<template>
+  <div>
+    <h2>My Children</h2>
+    <ul>
+      <li v-for="child in children" :key="child.id">
+        {{ child.name }}
+        <button @click="viewWorkouts(child)">View Workouts</button>
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const children = ref([
+  { id: 1, name: 'Child A' },
+  { id: 2, name: 'Child B' }
+])
+
+const emit = defineEmits(['view-workouts'])
+
+const viewWorkouts = (child) => {
+  emit('view-workouts', child)
+}
+</script>

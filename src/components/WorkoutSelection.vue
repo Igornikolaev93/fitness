@@ -1,1 +1,26 @@
-<template>\n  <div>\n    <h3>Select a Workout</h3>\n    <ul>\n      <li v-for=\"workout in workouts\" :key=\"workout.id\" @click=\"selectWorkout(workout)\">\n        {{ workout.name }}\n      </li>\n    </ul>\n  </div>\n</template>\n\n<script setup>\nimport { ref } from \'vue\'\n\nconst workouts = ref([\n  { id: 1, name: \'Workout 1\' },\n  { id: 2, name: \'Workout 2\' },\n  { id: 3, name: \'Workout 3\' }\n])\n\nconst emit = defineEmits([\'select-workout\'])\n\nconst selectWorkout = (workout) => {\n  emit(\'select-workout\', workout)\n}\n</script>
+<template>
+  <div>
+    <h3>Select a Workout</h3>
+    <ul>
+      <li v-for="workout in workouts" :key="workout.id" @click="selectWorkout(workout)">
+        {{ workout.name }}
+      </li>
+    </ul>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const workouts = ref([
+  { id: 1, name: 'Workout 1' },
+  { id: 2, name: 'Workout 2' },
+  { id: 3, name: 'Workout 3' }
+])
+
+const emit = defineEmits(['select-workout'])
+
+const selectWorkout = (workout) => {
+  emit('select-workout', workout)
+}
+</script>
