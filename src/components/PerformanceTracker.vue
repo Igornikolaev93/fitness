@@ -21,7 +21,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useWorkoutStore } from '@/store/workouts'
+import { useWorkoutStore } from '@/store/workout'
 
 const props = defineProps({
   workoutId: {

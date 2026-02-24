@@ -18,7 +18,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useTrainerStore } from '@/store/trainer'
-import { useWorkoutStore } from '@/store/workouts'
+import { useWorkoutStore } from '@/store/workout'
 import { useUserStore } from '@/store/user'
 
 const trainerStore = useTrainerStore()
