@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-import { useWorkoutStore } from '@/store/workouts'
+import { useWorkoutStore } from '@/store/workout'
 
 const workoutStore = useWorkoutStore()
 </script>

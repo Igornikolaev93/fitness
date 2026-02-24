@@ -11,7 +11,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useWorkoutStore } from '@/store/workouts'
+import { useWorkoutStore } from '@/store/workout'
 
 const workoutStore = useWorkoutStore()
 const createdWorkouts = ref([])
