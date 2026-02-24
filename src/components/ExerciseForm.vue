@@ -7,7 +7,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import { useWorkoutStore } from '@/store/workouts'
+import { useWorkoutStore } from '@/store/workout'
 
 const exerciseName = ref('')
 const workoutStore = useWorkoutStore()
