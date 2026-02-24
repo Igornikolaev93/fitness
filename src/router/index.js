@@ -1,12 +1,12 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import DashboardPage from '../pages/DashboardPage.vue'
-import WorkoutPage from '../pages/WorkoutPage.vue'
-import AdminPage from '../pages/AdminPage.vue'
-import ParentPage from '../pages/ParentPage.vue'
-import LoginPage from '../pages/LoginPage.vue'
-import CoachPage from '../pages/CoachPage.vue'
-import CreateWorkoutPage from '../pages/CreateWorkoutPage.vue'
-import ClientsPage from '../pages/ClientsPage.vue'
+import DashboardPage from '@/pages/DashboardPage.vue'
+import WorkoutPage from '@/pages/WorkoutPage.vue'
+import AdminPage from '@/pages/AdminPage.vue'
+import ParentPage from '@/pages/ParentPage.vue'
+import LoginPage from '@/pages/LoginPage.vue'
+import CoachPage from '@/pages/CoachPage.vue'
+import CreateWorkoutPage from '@/pages/CreateWorkoutPage.vue'
+import ClientsPage from '@/pages/ClientsPage.vue'
 
 const routes = [
   {

@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-import WorkoutList from '../components/WorkoutList.vue'
-import TrainingProgress from '../components/TrainingProgress.vue'
-import CreatedWorkouts from '../components/CreatedWorkouts.vue'
+import WorkoutList from '@/components/WorkoutList.vue'
+import TrainingProgress from '@/components/TrainingProgress.vue'
+import CreatedWorkouts from '@/components/CreatedWorkouts.vue'
 </script>

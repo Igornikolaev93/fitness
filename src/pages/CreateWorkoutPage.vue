@@ -9,8 +9,8 @@
 
 <script setup>
 import { useWorkoutStore } from '@/store/workouts'
-import ExerciseForm from '../components/ExerciseForm.vue'
-import ExerciseList from '../components/ExerciseList.vue'
+import ExerciseForm from '@/components/ExerciseForm.vue'
+import ExerciseList from '@/components/ExerciseList.vue'
 
 const workoutStore = useWorkoutStore()
 
