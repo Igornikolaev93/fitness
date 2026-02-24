@@ -1,0 +1,1 @@
+<template>\n  <div>\n    <h3>Created Workouts</h3>\n    <ul>\n      <li v-for=\"workout in workouts\" :key=\"workout.id\">{{ workout.name }}</li>\n    </ul>\n  </div>\n</template>\n\n<script setup>\ndefineProps({\n  workouts: {\n    type: Array,\n    required: true\n  }\n})\n</script>
