@@ -1,1 +1,25 @@
-<template>\n  <header>\n    <nav>\n      <router-link to=\"/dashboard\">Dashboard</router-link>\n      <router-link to=\"/admin\">Admin</router-link>\n      <router-link to=\"/parent\">Parent</router-link>\n      <router-link to=\"/coach\">Coach</router-link>\n    </nav>\n  </header>\n</template>\n\n<script setup>\n</script>\n\n<style scoped>\nheader {\n  background-color: #333;\n  color: white;\n  padding: 1rem;\n}\nnav a {\n  color: white;\n  margin-right: 1rem;\n}\n</style>
+<template>
+  <header>
+    <nav>
+      <router-link to="/dashboard">Dashboard</router-link>
+      <router-link to="/admin">Admin</router-link>
+      <router-link to="/parent">Parent</router-link>
+      <router-link to="/coach">Coach</router-link>
+    </nav>
+  </header>
+</template>
+
+<script setup>
+</script>
+
+<style scoped>
+header {
+  background-color: #333;
+  color: white;
+  padding: 1rem;
+}
+nav a {
+  color: white;
+  margin-right: 1rem;
+}
+</style>
