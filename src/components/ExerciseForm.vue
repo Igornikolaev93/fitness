@@ -7,13 +7,14 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useWorkoutStore } from '@/store/workouts'
 
 const exerciseName = ref('')
-const emit = defineEmits(['add-exercise'])
+const workoutStore = useWorkoutStore()
 
 const addExercise = () => {
   if (exerciseName.value.trim()) {
-    emit('add-exercise', exerciseName.value.trim())
+    workoutStore.addExercise({ name: exerciseName.value.trim() })
     exerciseName.value = ''
   }
 }

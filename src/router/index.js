@@ -5,6 +5,8 @@ import AdminPage from '../pages/AdminPage.vue'
 import ParentPage from '../pages/ParentPage.vue'
 import LoginPage from '../pages/LoginPage.vue'
 import CoachPage from '../pages/CoachPage.vue'
+import CreatedWorkoutsPage from '../pages/CreatedWorkoutsPage.vue'
+import ClientsListPage from '../pages/ClientsListPage.vue'
 
 const routes = [
   {
@@ -36,6 +38,16 @@ const routes = [
     path: '/coach',
     name: 'Coach',
     component: CoachPage
+  },
+  {
+    path: '/created-workouts',
+    name: 'CreatedWorkouts',
+    component: CreatedWorkoutsPage
+  },
+  {
+    path: '/clients',
+    name: 'Clients',
+    component: ClientsListPage
   }
 ]
 

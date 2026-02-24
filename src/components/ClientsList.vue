@@ -1,9 +1,9 @@
 <template>
   <div>
-    <h2>Created Workouts</h2>
+    <h2>Clients</h2>
     <ul>
-      <li v-for="workout in createdWorkouts" :key="workout.id">
-        {{ workout.name }}
+      <li v-for="client in clients" :key="client.id">
+        {{ client.name }}
       </li>
     </ul>
   </div>
@@ -14,9 +14,9 @@ import { ref, onMounted } from 'vue'
 import { useWorkoutStore } from '@/store/workouts'
 
 const workoutStore = useWorkoutStore()
-const createdWorkouts = ref([])
+const clients = ref([])
 
 onMounted(async () => {
-  createdWorkouts.value = await workoutStore.fetchCreatedWorkouts()
+  clients.value = await workoutStore.fetchClients()
 })
 </script>
