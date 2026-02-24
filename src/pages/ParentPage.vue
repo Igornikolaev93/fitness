@@ -86,12 +86,12 @@
     <div class="charts-section">
       <div class="chart-container">
         <h3>Динамика посещаемости</h3>
-        <canvas ref="attendanceChart"></canvas>
+        <canvas ref="attendanceChartEl"></canvas>
       </div>
 
       <div class="chart-container">
         <h3>Прогресс по месяцам</h3>
-        <canvas ref="progressChart"></canvas>
+        <canvas ref="progressChartEl"></canvas>
       </div>
     </div>
 
@@ -100,11 +100,11 @@
       <h3>Календарь посещений</h3>
       
       <div class="calendar-header">
-        <button class="btn btn-outline" @click="prevMonth">
+        <button class="btn btn-outline" @click="store.prevMonth">
           <i class="fas fa-chevron-left"></i>
         </button>
         <span class="current-month">{{ currentMonthName }} {{ currentYear }}</span>
-        <button class="btn btn-outline" @click="nextMonth">
+        <button class="btn btn-outline" @click="store.nextMonth">
           <i class="fas fa-chevron-right"></i>
         </button>
       </div>
@@ -147,8 +147,8 @@
       <div class="workouts-list">
         <div v-for="workout in recentWorkouts" :key="workout.id" class="workout-item">
           <div class="workout-date">
-            <span class="day">{{ formatDate(workout.date, 'DD') }}</span>
-            <span class="month">{{ formatDate(workout.date, 'MMM') }}</span>
+            <span class="day">{{ store.formatDate(workout.date, 'DD') }}</span>
+            <span class="month">{{ store.formatDate(workout.date, 'MMM') }}</span>
           </div>
           
           <div class="workout-info">
@@ -217,9 +217,9 @@
           <div class="notification-content">
             <h4>{{ notification.title }}</h4>
             <p>{{ notification.message }}</p>
-            <span class="notification-date">{{ formatDate(notification.date, 'relative') }}</span>
+            <span class="notification-date">{{ store.formatDate(notification.date, 'relative') }}</span>
           </div>
-          <button class="btn btn-outline" @click="markAsRead(notification.id)" v-if="!notification.read">
+          <button class="btn btn-outline" @click="store.markAsRead(notification.id)" v-if="!notification.read">
             Отметить
           </button>
         </div>
@@ -228,7 +228,7 @@
 
     <!-- Кнопка связи с тренером -->
     <div class="contact-trainer">
-      <button class="btn btn-primary btn-large" @click="contactTrainer">
+      <button class="btn btn-primary btn-large" @click="store.contactTrainer">
         <i class="fas fa-comments"></i> Связаться с тренером
       </button>
     </div>
@@ -236,279 +236,36 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useStore } from 'vuex'
-import Chart from 'chart.js/auto'
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth } from 'date-fns'
-import { ru } from 'date-fns/locale'
+import { ref, onMounted } from 'vue';
+import { storeToRefs } from 'pinia';
+import Chart from 'chart.js/auto';
+import { useParentStore } from '@/store/parent';
 
-const store = useStore()
-const attendanceChart = ref(null)
-const progressChart = ref(null)
+const store = useParentStore();
 
-// Данные ребенка
-const child = reactive({
-  name: 'Иван Петров',
-  avatar: 'https://via.placeholder.com/100',
-  age: 12,
-  grade: 6,
-  phone: '+7 (999) 123-45-67',
-  email: 'ivan@example.com',
-  status: 'active',
-  stats: {
-    totalWorkouts: 48,
-    thisMonth: 12,
-    streak: 5
-  }
-})
+const { 
+  child, 
+  attendance, 
+  progress, 
+  achievements, 
+  totalTime, 
+  attendanceData, 
+  progressData, 
+  currentMonthName, 
+  currentYear, 
+  calendarDays, 
+  recentWorkouts, 
+  progressCategories, 
+  notifications, 
+  weekdays 
+} = storeToRefs(store);
 
-// Статистика посещаемости
-const attendance = reactive({
-  percentage: 85,
-  visited: 48,
-  total: 56
-})
+const attendanceChartEl = ref(null);
+const progressChartEl = ref(null);
 
-// Прогресс
-const progress = reactive({
-  percentage: 70,
-  current: 7,
-  target: 10
-})
-
-// Достижения
-const achievements = reactive({
-  unlocked: 8,
-  total: 15
-})
-
-// Общее время
-const totalTime = reactive({
-  hours: 42,
-  minutes: 2520
-})
-
-// Данные для графиков
-const attendanceData = ref({
-  labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
-  datasets: [{
-    label: 'Посещаемость',
-    data: [85, 78, 92, 88, 95, 82],
-    backgroundColor: 'rgba(76, 175, 80, 0.2)',
-    borderColor: '#4CAF50',
-    borderWidth: 2,
-    tension: 0.4
-  }]
-})
-
-const progressData = ref({
-  labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн'],
-  datasets: [
-    {
-      label: 'Сила',
-      data: [65, 70, 75, 78, 82, 85],
-      backgroundColor: 'rgba(33, 150, 243, 0.2)',
-      borderColor: '#2196F3',
-      borderWidth: 2,
-      tension: 0.4
-    },
-    {
-      label: 'Выносливость',
-      data: [60, 65, 70, 72, 75, 80],
-      backgroundColor: 'rgba(255, 152, 0, 0.2)',
-      borderColor: '#FF9800',
-      borderWidth: 2,
-      tension: 0.4
-    }
-  ]
-})
-
-// Календарь
-const currentDate = ref(new Date())
-const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-
-const currentMonthName = computed(() => {
-  return format(currentDate.value, 'LLLL', { locale: ru })
-})
-
-const currentYear = computed(() => {
-  return format(currentDate.value, 'yyyy')
-})
-
-const calendarDays = computed(() => {
-  const start = startOfMonth(currentDate.value)
-  const end = endOfMonth(currentDate.value)
-  const days = eachDayOfInterval({ start, end })
-  
-  // Добавляем пустые ячейки для первого дня месяца
-  const firstDayIndex = start.getDay() === 0 ? 6 : start.getDay() - 1
-  const emptyDays = Array(firstDayIndex).fill({ date: null, day: '', attended: false, missed: false, planned: false })
-  
-  const daysWithStatus = days.map(date => {
-    // Здесь должна быть логика получения статуса из БД
-    const dayNumber = parseInt(format(date, 'd'))
-    return {
-      date,
-      day: dayNumber,
-      attended: [2, 5, 8, 12, 15, 19, 22].includes(dayNumber),
-      missed: [3, 10, 17].includes(dayNumber),
-      planned: [25, 28].includes(dayNumber)
-    }
-  })
-  
-  return [...emptyDays, ...daysWithStatus]
-})
-
-// Последние тренировки
-const recentWorkouts = ref([
-  {
-    id: 1,
-    title: 'Силовая тренировка',
-    date: new Date(2024, 0, 22, 16, 30),
-    duration: 45,
-    calories: 350,
-    trainer: 'Михаил Петров',
-    status: 'completed'
-  },
-  {
-    id: 2,
-    title: 'Кардио',
-    date: new Date(2024, 0, 20, 17, 0),
-    duration: 30,
-    calories: 250,
-    trainer: 'Анна Смирнова',
-    status: 'completed'
-  },
-  {
-    id: 3,
-    title: 'Йога',
-    date: new Date(2024, 0, 24, 18, 0),
-    duration: 60,
-    calories: 200,
-    trainer: 'Елена Иванова',
-    status: 'planned'
-  }
-])
-
-// Категории прогресса
-const progressCategories = ref([
-  {
-    id: 1,
-    name: 'Сила',
-    icon: 'fas fa-dumbbell',
-    color: '#2196F3',
-    currentLevel: 'Начинающий',
-    nextLevel: 'Средний',
-    progress: 65,
-    details: [
-      { label: 'Жим лежа', value: '35 кг' },
-      { label: 'Приседания', value: '40 кг' }
-    ]
-  },
-  {
-    id: 2,
-    name: 'Выносливость',
-    icon: 'fas fa-heart',
-    color: '#FF9800',
-    currentLevel: 'Средний',
-    nextLevel: 'Продвинутый',
-    progress: 70,
-    details: [
-      { label: 'Бег', value: '15 мин' },
-      { label: 'Пульс', value: '145 уд/мин' }
-    ]
-  },
-  {
-    id: 3,
-    name: 'Гибкость',
-    icon: 'fas fa-pray',
-    color: '#9C27B0',
-    currentLevel: 'Средний',
-    nextLevel: 'Хороший',
-    progress: 55,
-    details: [
-      { label: 'Наклон вперед', value: '25 см' },
-      { label: 'Мостик', value: '30 сек' }
-    ]
-  }
-])
-
-// Уведомления
-const notifications = ref([
-  {
-    id: 1,
-    type: 'info',
-    icon: 'fas fa-info-circle',
-    title: 'Прогресс ребенка',
-    message: 'Иван улучшил свой результат в силовой тренировке',
-    date: new Date(2024, 0, 22, 10, 30),
-    read: false
-  },
-  {
-    id: 2,
-    type: 'warning',
-    icon: 'fas fa-exclamation-triangle',
-    title: 'Пропуск тренировки',
-    message: 'Иван пропустил тренировку 20 января',
-    date: new Date(2024, 0, 21, 9, 0),
-    read: false
-  },
-  {
-    id: 3,
-    type: 'success',
-    icon: 'fas fa-trophy',
-    title: 'Новое достижение',
-    message: 'Иван получил достижение "10 тренировок подряд"',
-    date: new Date(2024, 0, 19, 14, 15),
-    read: true
-  }
-])
-
-// Методы для календаря
-const prevMonth = () => {
-  currentDate.value = subMonths(currentDate.value, 1)
-}
-
-const nextMonth = () => {
-  currentDate.value = addMonths(currentDate.value, 1)
-}
-
-// Форматирование даты
-const formatDate = (date, formatType) => {
-  if (formatType === 'relative') {
-    const diff = Date.now() - new Date(date).getTime()
-    const hours = Math.floor(diff / (1000 * 60 * 60))
-    
-    if (hours < 24) {
-      return `${hours} ч назад`
-    } else {
-      const days = Math.floor(hours / 24)
-      return `${days} дн назад`
-    }
-  }
-  
-  return format(new Date(date), formatType === 'DD' ? 'd' : formatType === 'MMM' ? 'MMM' : 'dd.MM.yyyy', { locale: ru })
-}
-
-// Отметка уведомления как прочитанного
-const markAsRead = (id) => {
-  const notification = notifications.value.find(n => n.id === id)
-  if (notification) {
-    notification.read = true
-  }
-}
-
-// Связь с тренером
-const contactTrainer = () => {
-  // Логика открытия чата с тренером
-  console.log('Contact trainer')
-}
-
-// Инициализация графиков
 onMounted(() => {
-  // График посещаемости
-  if (attendanceChart.value) {
-    new Chart(attendanceChart.value, {
+  if (attendanceChartEl.value) {
+    new Chart(attendanceChartEl.value, {
       type: 'line',
       data: attendanceData.value,
       options: {
@@ -529,12 +286,11 @@ onMounted(() => {
           }
         }
       }
-    })
+    });
   }
 
-  // График прогресса
-  if (progressChart.value) {
-    new Chart(progressChart.value, {
+  if (progressChartEl.value) {
+    new Chart(progressChartEl.value, {
       type: 'line',
       data: progressData.value,
       options: {
@@ -559,9 +315,9 @@ onMounted(() => {
           }
         }
       }
-    })
+    });
   }
-})
+});
 </script>
 
 <style scoped>

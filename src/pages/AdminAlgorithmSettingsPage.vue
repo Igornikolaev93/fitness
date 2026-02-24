@@ -23,7 +23,7 @@
     <div v-if="activeTab === 'algorithms'" class="algorithms-section">
       <div class="section-header">
         <h2>Алгоритмы расчета нагрузки</h2>
-        <button class="btn btn-primary" @click="addAlgorithm">
+        <button class="btn btn-primary" @click="openAddModal('algorithm')">
           <i class="fas fa-plus"></i> Добавить алгоритм
         </button>
       </div>
@@ -48,14 +48,14 @@
           </div>
 
           <div class="algorithm-actions">
-            <button class="btn btn-outline" @click="editAlgorithm(algorithm)">
+            <button class="btn btn-outline" @click="openEditModal('algorithm', algorithm)">
               <i class="fas fa-edit"></i> Редактировать
             </button>
-            <button class="btn btn-outline" @click="toggleAlgorithm(algorithm)">
+            <button class="btn btn-outline" @click="store.toggleAlgorithm(algorithm)">
               <i class="fas" :class="algorithm.active ? 'fa-pause' : 'fa-play'"></i>
               {{ algorithm.active ? 'Деактивировать' : 'Активировать' }}
             </button>
-            <button class="btn btn-outline-danger" @click="deleteAlgorithm(algorithm)">
+            <button class="btn btn-outline-danger" @click="handleDeleteAlgorithm(algorithm)">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -67,7 +67,7 @@
     <div v-if="activeTab === 'factors'" class="factors-section">
       <div class="section-header">
         <h2>Факторы влияния</h2>
-        <button class="btn btn-primary" @click="addFactor">
+        <button class="btn btn-primary" @click="openAddModal('factor')">
           <i class="fas fa-plus"></i> Добавить фактор
         </button>
       </div>
@@ -89,24 +89,24 @@
               <label>Вес фактора</label>
               <input 
                 type="number" 
-                v-model="factor.weight" 
+                :value="factor.weight"
+                @input="updateFactorField(factor, 'weight', $event.target.value)" 
                 min="0" 
                 max="1" 
                 step="0.1"
-                @change="updateFactor(factor)"
               >
             </div>
             <div class="setting">
               <label>Мин. значение</label>
-              <input type="number" v-model="factor.minValue" @change="updateFactor(factor)">
+              <input type="number" :value="factor.minValue" @input="updateFactorField(factor, 'minValue', $event.target.value)">
             </div>
             <div class="setting">
               <label>Макс. значение</label>
-              <input type="number" v-model="factor.maxValue" @change="updateFactor(factor)">
+              <input type="number" :value="factor.maxValue" @input="updateFactorField(factor, 'maxValue', $event.target.value)">
             </div>
             <div class="setting">
               <label>Формула</label>
-              <select v-model="factor.formula" @change="updateFactor(factor)">
+              <select :value="factor.formula" @change="updateFactorField(factor, 'formula', $event.target.value)">
                 <option value="linear">Линейная</option>
                 <option value="exponential">Экспоненциальная</option>
                 <option value="logarithmic">Логарифмическая</option>
@@ -117,12 +117,12 @@
 
           <div class="factor-status">
             <label class="switch">
-              <input type="checkbox" v-model="factor.enabled" @change="updateFactor(factor)">
+              <input type="checkbox" :checked="factor.enabled" @change="updateFactorField(factor, 'enabled', $event.target.checked)">
               <span class="slider"></span>
             </label>
           </div>
 
-          <button class="btn btn-outline-danger" @click="deleteFactor(factor)">
+          <button class="btn btn-outline-danger" @click="handleDeleteFactor(factor)">
             <i class="fas fa-trash"></i>
           </button>
         </div>
@@ -133,7 +133,7 @@
     <div v-if="activeTab === 'rules'" class="rules-section">
       <div class="section-header">
         <h2>Правила прогрессии</h2>
-        <button class="btn btn-primary" @click="addRule">
+        <button class="btn btn-primary" @click="openAddModal('rule')">
           <i class="fas fa-plus"></i> Добавить правило
         </button>
       </div>
@@ -158,13 +158,13 @@
           </div>
 
           <div class="rule-actions">
-            <button class="btn btn-outline" @click="editRule(rule)">
+            <button class="btn btn-outline" @click="openEditModal('rule', rule)">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="btn btn-outline" @click="toggleRule(rule)">
+            <button class="btn btn-outline" @click="store.toggleRule(rule)">
               <i class="fas" :class="rule.active ? 'fa-pause' : 'fa-play'"></i>
             </button>
-            <button class="btn btn-outline-danger" @click="deleteRule(rule)">
+            <button class="btn btn-outline-danger" @click="handleDeleteRule(rule)">
               <i class="fas fa-trash"></i>
             </button>
           </div>
@@ -271,10 +271,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import { useStore } from 'vuex'
+import { ref, onMounted } from 'vue'
+import { useAdminStore } from '@/store/admin'
+import { storeToRefs } from 'pinia'
 
-const store = useStore()
+const store = useAdminStore()
+const { algorithms, factors, rules, history } = storeToRefs(store)
+
 const activeTab = ref('algorithms')
 const showModal = ref(false)
 const modalMode = ref('add')
@@ -289,337 +292,91 @@ const tabs = ref([
   { id: 'history', name: 'История', icon: 'fas fa-history' }
 ])
 
-// Алгоритмы
-const algorithms = ref([])
-
-// Факторы
-const factors = ref([])
-
-// Правила
-const rules = ref([])
-
-// История
-const history = ref([])
-
-// Загрузка данных
-const loadAlgorithms = async () => {
-  try {
-    algorithms.value = [
-      {
-        id: 1,
-        name: 'Прогрессивная нагрузка',
-        description: 'Постепенное увеличение нагрузки с заданным процентом',
-        active: true,
-        params: {
-          increase: 10,
-          period: 'weekly',
-          maxIncrease: 50
-        }
-      },
-      {
-        id: 2,
-        name: 'Адаптивная нагрузка',
-        description: 'Адаптация нагрузки на основе предыдущих результатов',
-        active: true,
-        params: {
-          sensitivity: 0.8,
-          maxIncrease: 15,
-          minDecrease: 5
-        }
-      },
-      {
-        id: 3,
-        name: 'Периодическая нагрузка',
-        description: 'Циклическое изменение нагрузки по неделям',
-        active: false,
-        params: {
-          cycles: 4,
-          peakWeek: 3,
-          recoveryWeek: 4
-        }
-      }
-    ]
-  } catch (error) {
-    console.error('Error loading algorithms:', error)
-  }
-}
-
-const loadFactors = async () => {
-  try {
-    factors.value = [
-      {
-        id: 1,
-        name: 'Усталость',
-        description: 'Уровень физической усталости пользователя',
-        icon: 'fas fa-battery-quarter',
-        color: '#FF9800',
-        weight: 0.3,
-        minValue: 0,
-        maxValue: 100,
-        formula: 'linear',
-        enabled: true
-      },
-      {
-        id: 2,
-        name: 'Сон',
-        description: 'Качество и продолжительность сна',
-        icon: 'fas fa-moon',
-        color: '#4A90E2',
-        weight: 0.2,
-        minValue: 0,
-        maxValue: 10,
-        formula: 'exponential',
-        enabled: true
-      },
-      {
-        id: 3,
-        name: 'Питание',
-        description: 'Качество питания и калорийность',
-        icon: 'fas fa-utensils',
-        color: '#4CAF50',
-        weight: 0.2,
-        minValue: 0,
-        maxValue: 100,
-        formula: 'linear',
-        enabled: true
-      }
-    ]
-  } catch (error) {
-    console.error('Error loading factors:', error)
-  }
-}
-
-const loadRules = async () => {
-  try {
-    rules.value = [
-      {
-        id: 1,
-        name: 'Пропуск тренировки',
-        description: 'Снижение нагрузки при пропуске',
-        condition: 'missedWorkouts > 2',
-        action: 'decreaseLoad(15%)',
-        active: true
-      },
-      {
-        id: 2,
-        name: 'Успешное выполнение',
-        description: 'Увеличение нагрузки при успехе',
-        condition: 'completedWorkouts > 3',
-        action: 'increaseLoad(10%)',
-        active: true
-      }
-    ]
-  } catch (error) {
-    console.error('Error loading rules:', error)
-  }
-}
-
-const loadHistory = async () => {
-  try {
-    history.value = [
-      {
-        id: 1,
-        timestamp: new Date('2024-01-20T10:30:00'),
-        user: {
-          name: 'Администратор',
-          avatar: 'https://via.placeholder.com/30'
-        },
-        action: 'Изменение алгоритма',
-        details: 'Прогрессивная нагрузка: параметр increase изменен с 10 на 12'
-      },
-      {
-        id: 2,
-        timestamp: new Date('2024-01-19T15:45:00'),
-        user: {
-          name: 'Администратор',
-          avatar: 'https://via.placeholder.com/30'
-        },
-        action: 'Добавление фактора',
-        details: 'Добавлен фактор "Стресс" с весом 0.15'
-      }
-    ]
-  } catch (error) {
-    console.error('Error loading history:', error)
-  }
-}
-
-// Методы для алгоритмов
-const addAlgorithm = () => {
+const openAddModal = (type) => {
   modalMode.value = 'add'
-  modalType.value = 'algorithm'
-  modalData.value = {
-    name: '',
-    description: '',
-    paramsJson: '{}'
+  modalType.value = type
+  if (type === 'algorithm') {
+    modalData.value = { name: '', description: '', paramsJson: '{}' }
+  } else if (type === 'factor') {
+    modalData.value = { name: '', description: '', icon: 'fas fa-circle', color: '#667eea', weight: 0.1, minValue: 0, maxValue: 100, formula: 'linear', enabled: true }
+  } else if (type === 'rule') {
+    modalData.value = { name: '', description: '', condition: '', action: '', active: true }
   }
   showModal.value = true
 }
 
-const editAlgorithm = (algorithm) => {
+const openEditModal = (type, data) => {
   modalMode.value = 'edit'
-  modalType.value = 'algorithm'
-  modalData.value = {
-    ...algorithm,
-    paramsJson: JSON.stringify(algorithm.params, null, 2)
+  modalType.value = type
+  if (type === 'algorithm') {
+    modalData.value = { ...data, paramsJson: JSON.stringify(data.params, null, 2) }
+  } else {
+    modalData.value = { ...data }
   }
   showModal.value = true
 }
 
-const toggleAlgorithm = async (algorithm) => {
-  algorithm.active = !algorithm.active
-  await updateAlgorithm(algorithm)
-}
-
-const deleteAlgorithm = async (algorithm) => {
-  if (confirm(`Удалить алгоритм "${algorithm.name}"?`)) {
-    algorithms.value = algorithms.value.filter(a => a.id !== algorithm.id)
-    await saveToHistory('Удаление алгоритма', `Удален алгоритм "${algorithm.name}"`)
-  }
-}
-
-// Методы для факторов
-const addFactor = () => {
-  modalMode.value = 'add'
-  modalType.value = 'factor'
-  modalData.value = {
-    name: '',
-    description: '',
-    icon: 'fas fa-circle',
-    color: '#667eea',
-    weight: 0.1,
-    minValue: 0,
-    maxValue: 100,
-    formula: 'linear',
-    enabled: true
-  }
-  showModal.value = true
-}
-
-const editFactor = (factor) => {
-  modalMode.value = 'edit'
-  modalType.value = 'factor'
-  modalData.value = { ...factor }
-  showModal.value = true
-}
-
-const updateFactor = async (factor) => {
-  await saveToHistory('Обновление фактора', `Обновлен фактор "${factor.name}"`)
-}
-
-const deleteFactor = async (factor) => {
-  if (confirm(`Удалить фактор "${factor.name}"?`)) {
-    factors.value = factors.value.filter(f => f.id !== factor.id)
-    await saveToHistory('Удаление фактора', `Удален фактор "${factor.name}"`)
-  }
-}
-
-// Методы для правил
-const addRule = () => {
-  modalMode.value = 'add'
-  modalType.value = 'rule'
-  modalData.value = {
-    name: '',
-    description: '',
-    condition: '',
-    action: '',
-    active: true
-  }
-  showModal.value = true
-}
-
-const editRule = (rule) => {
-  modalMode.value = 'edit'
-  modalType.value = 'rule'
-  modalData.value = { ...rule }
-  showModal.value = true
-}
-
-const toggleRule = async (rule) => {
-  rule.active = !rule.active
-  await saveToHistory('Изменение статуса правила', `Правило "${rule.name}" ${rule.active ? 'активировано' : 'деактивировано'}`)
-}
-
-const deleteRule = async (rule) => {
-  if (confirm(`Удалить правило "${rule.name}"?`)) {
-    rules.value = rules.value.filter(r => r.id !== rule.id)
-    await saveToHistory('Удаление правила', `Удалено правило "${rule.name}"`)
-  }
-}
-
-// Общие методы
 const closeModal = () => {
   showModal.value = false
-  modalData.value = {}
 }
 
 const saveModal = async () => {
   if (modalType.value === 'algorithm') {
     try {
-      modalData.value.params = JSON.parse(modalData.value.paramsJson)
-      
+      const params = JSON.parse(modalData.value.paramsJson)
+      const data = { ...modalData.value, params }
+      delete data.paramsJson
+
       if (modalMode.value === 'add') {
-        algorithms.value.push({
-          id: Date.now(),
-          ...modalData.value,
-          active: true
-        })
-        await saveToHistory('Добавление алгоритма', `Добавлен алгоритм "${modalData.value.name}"`)
+        await store.addAlgorithm({ ...data, id: Date.now(), active: true })
       } else {
-        const index = algorithms.value.findIndex(a => a.id === modalData.value.id)
-        if (index !== -1) {
-          algorithms.value[index] = { ...modalData.value }
-          await saveToHistory('Редактирование алгоритма', `Отредактирован алгоритм "${modalData.value.name}"`)
-        }
+        await store.updateAlgorithm(data)
       }
     } catch (e) {
       alert('Неверный формат JSON для параметров')
       return
     }
   } else if (modalType.value === 'factor') {
+    const data = { ...modalData.value }
     if (modalMode.value === 'add') {
-      factors.value.push({
-        id: Date.now(),
-        ...modalData.value
-      })
-      await saveToHistory('Добавление фактора', `Добавлен фактор "${modalData.value.name}"`)
+      await store.addFactor({ ...data, id: Date.now() })
     } else {
-      const index = factors.value.findIndex(f => f.id === modalData.value.id)
-      if (index !== -1) {
-        factors.value[index] = { ...modalData.value }
-        await saveToHistory('Редактирование фактора', `Отредактирован фактор "${modalData.value.name}"`)
-      }
+      await store.updateFactor(data)
     }
   } else if (modalType.value === 'rule') {
+    const data = { ...modalData.value }
     if (modalMode.value === 'add') {
-      rules.value.push({
-        id: Date.now(),
-        ...modalData.value
-      })
-      await saveToHistory('Добавление правила', `Добавлено правило "${modalData.value.name}"`)
+      await store.addRule({ ...data, id: Date.now() })
     } else {
-      const index = rules.value.findIndex(r => r.id === modalData.value.id)
-      if (index !== -1) {
-        rules.value[index] = { ...modalData.value }
-        await saveToHistory('Редактирование правила', `Отредактировано правило "${modalData.value.name}"`)
-      }
+      await store.updateRule(data)
     }
   }
   
   closeModal()
 }
 
-const saveToHistory = async (action, details) => {
-  history.value.unshift({
-    id: Date.now(),
-    timestamp: new Date(),
-    user: {
-      name: 'Администратор',
-      avatar: 'https://via.placeholder.com/30'
-    },
-    action,
-    details
-  })
+const handleDeleteAlgorithm = async (algorithm) => {
+  if (confirm(`Удалить алгоритм "${algorithm.name}"?`)) {
+    await store.deleteAlgorithm(algorithm)
+  }
 }
+
+const handleDeleteFactor = async (factor) => {
+  if (confirm(`Удалить фактор "${factor.name}"?`)) {
+    await store.deleteFactor(factor)
+  }
+}
+
+const handleDeleteRule = async (rule) => {
+  if (confirm(`Удалить правило "${rule.name}"?`)) {
+    await store.deleteRule(rule)
+  }
+}
+
+const updateFactorField = (factor, field, value) => {
+  const updatedFactor = { ...factor, [field]: value };
+  store.updateFactor(updatedFactor);
+};
 
 const formatParamName = (key) => {
   const names = {
@@ -647,10 +404,10 @@ const formatDate = (date) => {
 
 // Инициализация
 onMounted(() => {
-  loadAlgorithms()
-  loadFactors()
-  loadRules()
-  loadHistory()
+  store.loadAlgorithms()
+  store.loadFactors()
+  store.loadRules()
+  store.loadHistory()
 })
 </script>
 
