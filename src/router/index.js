@@ -7,10 +7,18 @@ import LoginPage from '@/pages/LoginPage.vue'
 import CoachPage from '@/pages/CoachPage.vue'
 import CreateWorkoutPage from '@/pages/CreateWorkoutPage.vue'
 import ClientsPage from '@/pages/ClientsPage.vue'
+import HomePage from '@/pages/HomePage.vue'
+import CalculateProgressPage from '@/pages/CalculateProgressPage.vue'
+import AdminAlgorithmSettingsPage from '@/pages/AdminAlgorithmSettingsPage.vue'
 
 const routes = [
   {
     path: '/',
+    name: 'Home',
+    component: HomePage
+  },
+  {
+    path: '/login',
     name: 'Login',
     component: LoginPage
   },
@@ -48,6 +56,16 @@ const routes = [
     path: '/clients',
     name: 'Clients',
     component: ClientsPage
+  },
+  {
+    path: '/calculate-progress',
+    name: 'CalculateProgress',
+    component: CalculateProgressPage
+  },
+  {
+    path: '/admin/algorithm-settings',
+    name: 'AdminAlgorithmSettings',
+    component: AdminAlgorithmSettingsPage
   }
 ]
 
