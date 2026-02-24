@@ -5,8 +5,8 @@ import AdminPage from '../pages/AdminPage.vue'
 import ParentPage from '../pages/ParentPage.vue'
 import LoginPage from '../pages/LoginPage.vue'
 import CoachPage from '../pages/CoachPage.vue'
-import CreatedWorkoutsPage from '../pages/CreatedWorkoutsPage.vue'
-import ClientsListPage from '../pages/ClientsListPage.vue'
+import CreateWorkoutPage from '../pages/CreateWorkoutPage.vue'
+import ClientsPage from '../pages/ClientsPage.vue'
 
 const routes = [
   {
@@ -40,14 +40,14 @@ const routes = [
     component: CoachPage
   },
   {
-    path: '/created-workouts',
-    name: 'CreatedWorkouts',
-    component: CreatedWorkoutsPage
+    path: '/create-workout',
+    name: 'CreateWorkout',
+    component: CreateWorkoutPage
   },
   {
     path: '/clients',
     name: 'Clients',
-    component: ClientsListPage
+    component: ClientsPage
   }
 ]
 

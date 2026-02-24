@@ -10,6 +10,7 @@ export const useWorkoutStore = defineStore('workout', {
     clients: [],
     workouts: [],
     createdWorkouts: [],
+    performanceHistory: [],
   }),
   actions: {
     addExercise(exercise) {
@@ -35,6 +36,17 @@ export const useWorkoutStore = defineStore('workout', {
     async fetchCreatedWorkouts() {
       this.createdWorkouts = createdWorkoutsData
       return this.createdWorkouts
+    },
+    recordPerformance({ workoutId, sets, reps, weight }) {
+      const performanceData = {
+        workoutId,
+        sets,
+        reps,
+        weight,
+        load: sets * reps * weight,
+        date: new Date().toISOString(),
+      }
+      this.performanceHistory.push(performanceData)
     },
   },
 })
