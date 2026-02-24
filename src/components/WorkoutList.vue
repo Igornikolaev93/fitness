@@ -1,7 +1,7 @@
 <template>
   <div>
     <ul>
-      <li v-for="workout in workouts" :key="workout.id">
+      <li v-for="workout in trainerStore.clientWorkouts" :key="workout.id">
         {{ workout.name }}
       </li>
     </ul>
@@ -9,11 +9,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { watch } from 'vue'
+import { useTrainerStore } from '@/store/trainer'
 
-// This is a placeholder. In a real application, you would fetch the workouts for the selected child.
-const workouts = ref([
-  { id: 1, name: 'Assigned Workout 1' },
-  { id: 2, name: 'Assigned Workout 2' }
-])
+const trainerStore = useTrainerStore();
+
+watch(() => trainerStore.selectedClient, (newClient) => {
+  if (newClient) {
+    trainerStore.fetchClientWorkouts(newClient.id);
+  }
+});
 </script>

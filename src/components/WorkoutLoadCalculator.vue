@@ -5,6 +5,12 @@
       <p class="subtitle">На основе ваших прошлых результатов</p>
     </div>
 
+    <!-- Индикатор загрузки -->
+    <div v-if="algorithmStore.loading || workoutStore.loading || userStore.loading" class="loading-overlay">
+      <i class="fas fa-spinner fa-spin"></i>
+      <span>Загрузка...</span>
+    </div>
+
     <!-- Статистика пользователя -->
     <div class="user-stats">
       <div class="stat-card">
@@ -33,12 +39,15 @@
     <!-- Варианты нагрузки -->
     <div class="load-options">
       <h3>Рекомендованные варианты нагрузки</h3>
-      <div class="options-grid">
+      <div v-if="workoutStore.workoutOptions.length === 0" class="no-options">
+        <p>Нет доступных вариантов. Пожалуйста, попробуйте позже.</p>
+      </div>
+      <div v-else class="options-grid">
         <div 
           v-for="option in workoutStore.workoutOptions" 
           :key="option.id"
           class="option-card"
-          :class="{ selected: workoutStore.currentWorkout && workoutStore.currentWorkout.id === option.id }"
+          :class="{ selected: selectedOption === option.id }"
           @click="selectOption(option.id)"
         >
           <div class="option-header" :style="{ backgroundColor: option.color + '20' }">
@@ -90,8 +99,8 @@
       <div class="calculation-settings">
         <div class="setting-group">
           <label>Алгоритм расчета</label>
-          <select v-model="selectedAlgorithm" @change="updateAlgorithm">
-            <option v-for="algo in algorithmStore.algorithms" :key="algo.id" :value="algo.id">
+          <select v-model="selectedAlgorithmId" @change="updateAlgorithm">
+            <option v-for="algo in algorithmStore.activeAlgorithms" :key="algo.id" :value="algo.id">
               {{ algo.name }}
             </option>
           </select>
@@ -101,7 +110,11 @@
           <label>Учитывать факторы</label>
           <div class="checkbox-group">
             <label v-for="factor in algorithmStore.factors" :key="factor.id">
-              <input type="checkbox" v-model="factor.enabled" @change="updateFactors">
+              <input 
+                type="checkbox" 
+                v-model="factor.enabled" 
+                @change="updateFactor(factor)"
+              >
               {{ factor.name }}
             </label>
           </div>
@@ -109,17 +122,18 @@
 
         <div class="setting-group">
           <label>Количество вариантов</label>
-          <input type="number" v-model="optionsCount" min="1" max="5" @change="updateOptionsCount">
+          <input type="number" v-model="optionsCount" min="1" max="5" @change="recalculateOptions">
         </div>
       </div>
 
-      <button class="btn btn-secondary" @click="recalculateForUser">
-        <i class="fas fa-sync-alt"></i> Пересчитать для пользователя
+      <button class="btn btn-secondary" @click="recalculateForUser" :disabled="algorithmStore.loading">
+        <i class="fas fa-sync-alt" :class="{ 'fa-spin': algorithmStore.loading }"></i> 
+        Пересчитать для пользователя
       </button>
     </div>
 
     <!-- Отметка о выполнении -->
-    <div v-if="workoutStore.currentWorkout" class="completion-section">
+    <div v-if="selectedOption" class="completion-section">
       <h3>Отметка о выполнении тренировки</h3>
       
       <div class="completion-form">
@@ -153,7 +167,7 @@
           <textarea v-model="completionData.comment" placeholder="Ваши впечатления от тренировки..."></textarea>
         </div>
 
-        <button class="btn btn-success btn-large" @click="markAsCompleted">
+        <button class="btn btn-success btn-large" @click="markAsCompleted" :disabled="workoutStore.loading">
           <i class="fas fa-check-circle"></i> Отметить выполнение
         </button>
       </div>
@@ -162,12 +176,16 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useWorkoutStore } from '@/store/workout'
 import { useAlgorithmStore } from '@/store/algorithm'
 import { useUserStore } from '@/store/user'
 
 const props = defineProps({
+  userId: {
+    type: Number,
+    required: true
+  },
   isTrainer: {
     type: Boolean,
     default: false
@@ -184,106 +202,105 @@ const workoutStore = useWorkoutStore()
 const algorithmStore = useAlgorithmStore()
 const userStore = useUserStore()
 
-const selectedAlgorithm = ref(null)
+const selectedOption = ref(null)
+const selectedAlgorithmId = ref(null)
 const optionsCount = ref(3)
 
-const completionData = ref({
+// Данные о выполнении
+const completionData = reactive({
   actualDuration: null,
   avgHeartRate: null,
   wellbeing: 3,
-  comment: ''
+  comment: '',
+  exercisesCompleted: []
 })
 
-const calculateLoadOptions = async () => {
-  if (!userStore.currentUser) return;
-  await workoutStore.calculateWorkoutOptions(userStore.currentUser.id, props.workoutType)
-}
+// Вычисляемые свойства
+const selectedAlgorithm = computed(() => {
+  return algorithmStore.algorithms.find(a => a.id === selectedAlgorithmId.value)
+})
 
-// Выбор варианта
+// Методы
 const selectOption = (optionId) => {
+  selectedOption.value = optionId
   workoutStore.selectWorkoutOption(optionId)
-  emit('optionSelected', workoutStore.currentWorkout)
+  emit('optionSelected', workoutStore.workoutOptions.find(o => o.id === optionId))
 }
 
-// Выбор и старт тренировки
 const selectAndStart = async (optionId) => {
-  await selectOption(optionId)
-  if (workoutStore.currentWorkout) {
-    await workoutStore.startWorkout(workoutStore.currentWorkout.id)
-  }
+  selectOption(optionId)
+  await workoutStore.startWorkout(optionId)
 }
 
-// Отметка о выполнении
 const markAsCompleted = async () => {
-  if (!workoutStore.currentWorkout) return;
-
-  const completionPayload = {
-    ...completionData.value,
-    userId: userStore.currentUser.id,
-    workoutId: workoutStore.currentWorkout.id,
-    timestamp: new Date().toISOString()
-  }
-
-  await workoutStore.completeWorkout(workoutStore.currentWorkout.id, completionPayload)
-  emit('workoutCompleted', completionPayload)
+  const selectedWorkout = workoutStore.workoutOptions.find(o => o.id === selectedOption.value)
+  
+  await workoutStore.completeWorkout(selectedWorkout.id, {
+    ...completionData,
+    plannedWorkout: selectedWorkout
+  })
+  
+  emit('workoutCompleted', {
+    workoutId: selectedWorkout.id,
+    completionData
+  })
   
   // Сброс формы
-  completionData.value = {
-    actualDuration: null,
-    avgHeartRate: null,
-    wellbeing: 3,
-    comment: ''
-  }
+  completionData.actualDuration = null
+  completionData.avgHeartRate = null
+  completionData.wellbeing = 3
+  completionData.comment = ''
   
-  // Пересчет вариантов для следующей тренировки
-  await calculateLoadOptions()
+  // Пересчет вариантов
+  await recalculateOptions()
 }
 
-// Методы для тренера
-const updateAlgorithm = () => {
-  recalculateForUser()
+const updateAlgorithm = async () => {
+  await recalculateOptions()
 }
 
-const updateFactors = () => {
-  recalculateForUser()
+const updateFactor = async (factor) => {
+  await algorithmStore.updateFactor(factor.id, factor)
+  await recalculateOptions()
 }
 
-const updateOptionsCount = () => {
-  recalculateForUser()
+const recalculateOptions = async () => {
+  await workoutStore.calculateWorkoutOptions(props.userId, props.workoutType)
 }
 
 const recalculateForUser = async () => {
-  if (!userStore.currentUser) return;
   await algorithmStore.applyAlgorithmToUser(
-    userStore.currentUser.id, 
-    selectedAlgorithm.value, 
-    { type: props.workoutType, count: optionsCount.value }
+    props.userId,
+    selectedAlgorithmId.value,
+    { type: props.workoutType }
   )
+  await recalculateOptions()
 }
 
-watch(() => userStore.currentUser, (newUser) => {
-  if (newUser) {
-    userStore.fetchUserStats(newUser.id)
-    calculateLoadOptions()
+// Наблюдатели
+watch(() => props.userId, async (newUserId) => {
+  if (newUserId) {
+    await userStore.fetchUserStats(newUserId)
+    await recalculateOptions()
   }
 })
 
-watch(() => props.workoutType, () => {
-  calculateLoadOptions()
+watch(() => props.workoutType, async () => {
+  await recalculateOptions()
 })
 
 // Инициализация
 onMounted(async () => {
-  if (props.isTrainer) {
-    await algorithmStore.fetchAlgorithms()
-    await algorithmStore.fetchFactors()
-    if (algorithmStore.algorithms.length > 0) {
-      selectedAlgorithm.value = algorithmStore.algorithms[0].id
-    }
+  await algorithmStore.fetchAlgorithms()
+  await algorithmStore.fetchFactors()
+  
+  if (algorithmStore.activeAlgorithms.length > 0) {
+    selectedAlgorithmId.value = algorithmStore.activeAlgorithms[0].id
   }
-  if (userStore.currentUser) {
-    await userStore.fetchUserStats(userStore.currentUser.id)
-    await calculateLoadOptions()
+  
+  if (props.userId) {
+    await userStore.fetchUserStats(props.userId)
+    await recalculateOptions()
   }
 })
 </script>
@@ -293,6 +310,7 @@ onMounted(async () => {
   padding: 20px;
   max-width: 1200px;
   margin: 0 auto;
+  position: relative;
 }
 
 .calculator-header {
@@ -309,6 +327,26 @@ onMounted(async () => {
 .subtitle {
   color: #666;
   font-size: 16px;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 12px;
+}
+
+.loading-overlay i {
+  font-size: 24px;
+  color: #667eea;
+  margin-right: 10px;
 }
 
 .user-stats {
@@ -606,8 +644,13 @@ onMounted(async () => {
   color: white;
 }
 
-.btn-success:hover {
+.btn-success:hover:not(:disabled) {
   background: #45a049;
+}
+
+.btn-success:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .btn-block {
@@ -617,6 +660,14 @@ onMounted(async () => {
 .btn-large {
   padding: 15px 30px;
   font-size: 16px;
+}
+
+.no-options {
+  text-align: center;
+  padding: 40px;
+  background: #f9f9f9;
+  border-radius: 12px;
+  color: #666;
 }
 
 @media (max-width: 768px) {

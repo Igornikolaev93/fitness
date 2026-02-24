@@ -32,8 +32,11 @@
     <!-- Популярные тренировки -->
     <section class="popular-workouts">
       <h2 class="section-title">Популярные тренировки</h2>
-      <div class="workouts-grid">
-        <div v-for="workout in popularWorkouts" :key="workout.id" class="workout-card">
+      <div v-if="workoutStore.loading" class="loading-spinner">
+        <i class="fas fa-spinner fa-spin"></i> Загрузка...
+      </div>
+      <div v-else class="workouts-grid">
+        <div v-for="workout in workoutStore.workouts" :key="workout.id" class="workout-card">
           <div class="workout-image">
             <img :src="workout.image" :alt="workout.title" />
             <span class="workout-difficulty" :class="workout.difficulty.toLowerCase()">
@@ -84,10 +87,14 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useWorkoutStore } from '@/store/workout'
+import { useUserStore } from '@/store/user'
 
 const router = useRouter()
+const workoutStore = useWorkoutStore()
+const userStore = useUserStore()
 
 // Данные для преимуществ
 const features = ref([
@@ -121,33 +128,7 @@ const features = ref([
   }
 ])
 
-// Популярные тренировки
-const popularWorkouts = ref([
-  {
-    id: 1,
-    title: 'Силовая тренировка',
-    image: 'https://via.placeholder.com/300x200',
-    difficulty: 'Средний',
-    duration: 45,
-    calories: 350
-  },
-  {
-    id: 2,
-    title: 'Йога для начинающих',
-    image: 'https://via.placeholder.com/300x200',
-    difficulty: 'Легкий',
-    duration: 30,
-    calories: 150
-  },
-  {
-    id: 3,
-    title: 'HIIT тренировка',
-    image: 'https://via.placeholder.com/300x200',
-    difficulty: 'Сложный',
-    duration: 25,
-    calories: 400
-  }
-])
+
 
 // Отзывы
 const testimonials = ref([
@@ -173,26 +154,40 @@ const testimonials = ref([
     name: 'Дмитрий Иванов',
     role: 'Клиент',
     rating: 4,
-    avatar: 'https://via.placeholder.com.com/50'
+    avatar: 'https://via.placeholder.com/50'
   }
 ])
 
 // Методы
 const handleStartWorkout = () => {
-  router.push('/workouts')
+  if (userStore.isAuthenticated) {
+    router.push('/workouts')
+  } else {
+    router.push('/login?redirect=workouts')
+  }
 }
 
 const handleLearnMore = () => {
   router.push('/about')
 }
 
-const startWorkout = (workoutId) => {
-  router.push(`/workout/${workoutId}`)
+const startWorkout = async (workoutId) => {
+  if (userStore.isAuthenticated) {
+    await workoutStore.startWorkout(workoutId)
+    router.push(`/workout/${workoutId}`)
+  } else {
+    router.push(`/login?redirect=workout/${workoutId}`)
+  }
 }
 
 const handleRegister = () => {
   router.push('/register')
 }
+
+// Загрузка данных при монтировании
+onMounted(async () => {
+  await workoutStore.fetchWorkouts()
+})
 </script>
 
 <style scoped>
@@ -458,6 +453,16 @@ const handleRegister = () => {
 .btn-large {
   padding: 15px 40px;
   font-size: 18px;
+}
+
+.loading-spinner {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.loading-spinner i {
+  margin-right: 10px;
 }
 
 @media (max-width: 768px) {

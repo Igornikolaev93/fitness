@@ -10,28 +10,28 @@
       <div class="stat-card">
         <i class="fas fa-users"></i>
         <div class="stat-info">
-          <span class="stat-value">{{ stats.totalClients }}</span>
+          <span class="stat-value">{{ trainerStore.trainerStats.totalClients }}</span>
           <span class="stat-label">Всего учеников</span>
         </div>
       </div>
       <div class="stat-card">
         <i class="fas fa-calendar-check"></i>
         <div class="stat-info">
-          <span class="stat-value">{{ stats.todayWorkouts }}</span>
+          <span class="stat-value">{{ trainerStore.trainerStats.todayWorkouts }}</span>
           <span class="stat-label">Тренировок сегодня</span>
         </div>
       </div>
       <div class="stat-card">
         <i class="fas fa-chart-line"></i>
         <div class="stat-info">
-          <span class="stat-value">{{ stats.avgProgress }}%</span>
+          <span class="stat-value">{{ trainerStore.trainerStats.avgProgress }}%</span>
           <span class="stat-label">Средний прогресс</span>
         </div>
       </div>
       <div class="stat-card">
         <i class="fas fa-clock"></i>
         <div class="stat-info">
-          <span class="stat-value">{{ stats.hoursThisWeek }}</span>
+          <span class="stat-value">{{ trainerStore.trainerStats.hoursThisWeek }}</span>
           <span class="stat-label">Часов за неделю</span>
         </div>
       </div>
@@ -148,19 +148,17 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useTrainerStore } from '@/store/trainer'
+import { useUserStore } from '@/store/user'
 import WorkoutLoadCalculator from '@/components/WorkoutLoadCalculator.vue'
+
+const trainerStore = useTrainerStore();
+const userStore = useUserStore();
 
 const activeTab = ref('clients')
 const clientSearch = ref('')
 const selectedClient = ref(null)
 
-// Статистика
-const stats = ref({
-  totalClients: 12,
-  todayWorkouts: 4,
-  avgProgress: 78,
-  hoursThisWeek: 24
-})
 
 // Вкладки
 const tabs = ref([
@@ -169,95 +167,32 @@ const tabs = ref([
   { id: 'analytics', name: 'Аналитика', icon: 'fas fa-chart-bar' }
 ])
 
-// Список учеников
-const clients = ref([
-  {
-    id: 1,
-    name: 'Анна Смирнова',
-    avatar: 'https://via.placeholder.com/100',
-    age: 28,
-    status: 'active',
-    progress: 75,
-    workoutsCount: 24,
-    startDate: '01.2024',
-    lastWorkout: '2024-01-20',
-    goals: ['Снижение веса', 'Укрепление мышц']
-  },
-  {
-    id: 2,
-    name: 'Иван Петров',
-    avatar: 'https://via.placeholder.com/100',
-    age: 32,
-    status: 'active',
-    progress: 60,
-    workoutsCount: 18,
-    startDate: '02.2024',
-    lastWorkout: '2024-01-19',
-    goals: ['Набор массы', 'Силовые показатели']
-  },
-  {
-    id: 3,
-    name: 'Елена Иванова',
-    avatar: 'https://via.placeholder.com/100',
-    age: 25,
-    status: 'inactive',
-    progress: 45,
-    workoutsCount: 12,
-    startDate: '03.2024',
-    lastWorkout: '2024-01-10',
-    goals: ['Тонус', 'Выносливость']
-  }
-])
-
 // Фильтрация учеников
 const filteredClients = computed(() => {
-  if (!clientSearch.value) return clients.value
-  return clients.value.filter(client => 
+  if (!clientSearch.value) return trainerStore.clients;
+  return trainerStore.clients.filter(client => 
     client.name.toLowerCase().includes(clientSearch.value.toLowerCase())
   )
 })
 
 // Расписание
-const schedule = ref([
-  {
-    name: 'Понедельник',
-    date: '22.01',
-    workouts: [
-      { id: 1, time: '10:00', client: 'Анна Смирнова', type: 'силовая' },
-      { id: 2, time: '12:00', client: 'Иван Петров', type: 'кардио' }
-    ]
-  },
-  {
-    name: 'Вторник',
-    date: '23.01',
-    workouts: [
-      { id: 3, time: '11:00', client: 'Елена Иванова', type: 'йога' }
-    ]
-  },
-  {
-    name: 'Среда',
-    date: '24.01',
-    workouts: [
-      { id: 4, time: '09:00', client: 'Анна Смирнова', type: 'силовая' },
-      { id: 5, time: '14:00', client: 'Иван Петров', type: 'силовая' }
-    ]
-  },
-  {
-    name: 'Четверг',
-    date: '25.01',
-    workouts: []
-  },
-  {
-    name: 'Пятница',
-    date: '26.01',
-    workouts: [
-      { id: 6, time: '16:00', client: 'Елена Иванова', type: 'кардио' }
-    ]
+const schedule = computed(() => trainerStore.schedule)
+
+onMounted(() => {
+  if (userStore.currentUser?.id) {
+    trainerStore.fetchClients(userStore.currentUser.id)
+    const today = new Date();
+    const startDate = new Date(today);
+    startDate.setDate(today.getDate() - today.getDay());
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    trainerStore.fetchSchedule(userStore.currentUser.id, startDate.toISOString().split('T')[0], endDate.toISOString().split('T')[0]);
   }
-])
+})
 
 // Методы
 const selectClient = (client) => {
+  trainerStore.fetchClientDetails(client.id)
   selectedClient.value = client
 }
 
@@ -267,12 +202,16 @@ const openWorkoutPlanner = (client) => {
 
 const handleOptionSelected = (option) => {
   console.log('Selected workout option:', option)
-  // Логика сохранения выбранного варианта
+  if (selectedClient.value) {
+    trainerStore.createWorkoutPlan(selectedClient.value.id, option);
+  }
 }
 
 const handleWorkoutCompleted = (completionData) => {
   console.log('Workout completed:', completionData)
-  // Логика обработки выполненной тренировки
+    if (selectedClient.value) {
+        trainerStore.markWorkoutAsCompleted(completionData.workoutId, completionData);
+    }
 }
 
 const prevWeek = () => {

@@ -6,30 +6,30 @@
     </div>
 
     <!-- Информация о ребенке -->
-    <div class="child-info-card">
+    <div v-if="parentStore.selectedChild" class="child-info-card">
       <div class="child-avatar">
-        <img :src="child.avatar" :alt="child.name">
-        <span class="child-status" :class="child.status"></span>
+        <img :src="parentStore.selectedChild.avatar" :alt="parentStore.selectedChild.name">
+        <span class="child-status" :class="parentStore.selectedChild.status"></span>
       </div>
       <div class="child-details">
-        <h2>{{ child.name }}</h2>
-        <p class="child-age">{{ child.age }} лет, {{ child.grade }} класс</p>
+        <h2>{{ parentStore.selectedChild.name }}</h2>
+        <p class="child-age">{{ parentStore.childAge }} лет</p>
         <div class="child-contacts">
-          <span><i class="fas fa-phone"></i> {{ child.phone }}</span>
-          <span><i class="fas fa-envelope"></i> {{ child.email }}</span>
+          <span><i class="fas fa-phone"></i> {{ parentStore.selectedChild.phone }}</span>
+          <span><i class="fas fa-envelope"></i> {{ parentStore.selectedChild.email }}</span>
         </div>
       </div>
       <div class="child-stats">
         <div class="stat">
-          <span class="stat-value">{{ child.stats.totalWorkouts }}</span>
+          <span class="stat-value">{{ parentStore.selectedChild.stats.totalWorkouts }}</span>
           <span class="stat-label">Всего тренировок</span>
         </div>
         <div class="stat">
-          <span class="stat-value">{{ child.stats.thisMonth }}</span>
+          <span class="stat-value">{{ parentStore.selectedChild.stats.thisMonth }}</span>
           <span class="stat-label">За месяц</span>
         </div>
         <div class="stat">
-          <span class="stat-value">{{ child.stats.streak }}</span>
+          <span class="stat-value">{{ parentStore.selectedChild.stats.streak }}</span>
           <span class="stat-label">Дней подряд</span>
         </div>
       </div>
@@ -43,8 +43,7 @@
         </div>
         <div class="stat-content">
           <span class="stat-label">Посещаемость</span>
-          <span class="stat-value">{{ attendance.percentage }}%</span>
-          <span class="stat-detail">{{ attendance.visited }}/{{ attendance.total }} тренировок</span>
+          <span class="stat-value">{{ parentStore.averageAttendance }}%</span>
         </div>
       </div>
 
@@ -54,8 +53,7 @@
         </div>
         <div class="stat-content">
           <span class="stat-label">Прогресс</span>
-          <span class="stat-value">{{ progress.percentage }}%</span>
-          <span class="stat-detail">{{ progress.current }}/{{ progress.target }} целей</span>
+          <span class="stat-value">{{ parentStore.childProgress?.percentage || 0 }}%</span>
         </div>
       </div>
 
@@ -100,11 +98,11 @@
       <h3>Календарь посещений</h3>
       
       <div class="calendar-header">
-        <button class="btn btn-outline" @click="store.prevMonth">
+        <button class="btn btn-outline" @click="prevMonth">
           <i class="fas fa-chevron-left"></i>
         </button>
         <span class="current-month">{{ currentMonthName }} {{ currentYear }}</span>
-        <button class="btn btn-outline" @click="store.nextMonth">
+        <button class="btn btn-outline" @click="nextMonth">
           <i class="fas fa-chevron-right"></i>
         </button>
       </div>
@@ -147,8 +145,8 @@
       <div class="workouts-list">
         <div v-for="workout in recentWorkouts" :key="workout.id" class="workout-item">
           <div class="workout-date">
-            <span class="day">{{ store.formatDate(workout.date, 'DD') }}</span>
-            <span class="month">{{ store.formatDate(workout.date, 'MMM') }}</span>
+            <span class="day">{{ formatDate(workout.date, 'DD') }}</span>
+            <span class="month">{{ formatDate(workout.date, 'MMM') }}</span>
           </div>
           
           <div class="workout-info">
@@ -210,16 +208,16 @@
       <h3>Уведомления и рекомендации</h3>
 
       <div class="notifications-list">
-        <div v-for="notification in notifications" :key="notification.id" class="notification-item" :class="notification.type">
+        <div v-for="notification in parentStore.notifications" :key="notification.id" class="notification-item" :class="notification.type">
           <div class="notification-icon">
             <i :class="notification.icon"></i>
           </div>
           <div class="notification-content">
             <h4>{{ notification.title }}</h4>
             <p>{{ notification.message }}</p>
-            <span class="notification-date">{{ store.formatDate(notification.date, 'relative') }}</span>
+            <span class="notification-date">{{ formatDate(notification.date, 'relative') }}</span>
           </div>
-          <button class="btn btn-outline" @click="store.markAsRead(notification.id)" v-if="!notification.read">
+          <button class="btn btn-outline" @click="parentStore.markNotificationAsRead(notification.id)" v-if="!notification.read">
             Отметить
           </button>
         </div>
@@ -228,7 +226,7 @@
 
     <!-- Кнопка связи с тренером -->
     <div class="contact-trainer">
-      <button class="btn btn-primary btn-large" @click="store.contactTrainer">
+      <button class="btn btn-primary btn-large" @click="contactTrainer">
         <i class="fas fa-comments"></i> Связаться с тренером
       </button>
     </div>
@@ -236,38 +234,86 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { storeToRefs } from 'pinia';
+import { ref, onMounted, computed } from 'vue';
 import Chart from 'chart.js/auto';
 import { useParentStore } from '@/store/parent';
+import { useUserStore } from '@/store/user';
 
-const store = useParentStore();
-
-const { 
-  child, 
-  attendance, 
-  progress, 
-  achievements, 
-  totalTime, 
-  attendanceData, 
-  progressData, 
-  currentMonthName, 
-  currentYear, 
-  calendarDays, 
-  recentWorkouts, 
-  progressCategories, 
-  notifications, 
-  weekdays 
-} = storeToRefs(store);
+const parentStore = useParentStore();
+const userStore = useUserStore();
 
 const attendanceChartEl = ref(null);
 const progressChartEl = ref(null);
 
-onMounted(() => {
-  if (attendanceChartEl.value) {
+const currentMonth = ref(new Date().getMonth());
+const currentYear = ref(new Date().getFullYear());
+
+const achievements = ref({ unlocked: 0, total: 0 });
+const totalTime = ref({ hours: 0, minutes: 0 });
+const recentWorkouts = ref([]);
+const progressCategories = ref([]);
+
+const weekdays = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс'];
+
+const currentMonthName = computed(() => {
+  return new Date(currentYear.value, currentMonth.value).toLocaleString('ru-RU', { month: 'long' });
+});
+
+const calendarDays = computed(() => {
+    const date = new Date(currentYear.value, currentMonth.value, 1);
+    const days = [];
+    const firstDayIndex = (date.getDay() + 6) % 7; 
+    const lastDay = new Date(currentYear.value, currentMonth.value + 1, 0).getDate();
+
+    for (let i = 0; i < firstDayIndex; i++) {
+        days.push({ date: null, day: null });
+    }
+
+    for (let i = 1; i <= lastDay; i++) {
+        const fullDate = new Date(currentYear.value, currentMonth.value, i).toISOString().split('T')[0];
+        const attendanceDay = parentStore.childAttendance.find(d => d.date === fullDate);
+        days.push({
+            date: fullDate,
+            day: i,
+            attended: attendanceDay?.attended,
+            missed: attendanceDay && !attendanceDay.attended,
+            planned: attendanceDay?.planned
+        });
+    }
+
+    return days;
+});
+
+
+onMounted(async () => {
+  if (userStore.currentUser?.id) {
+    await parentStore.fetchChildren(userStore.currentUser.id);
+    if (parentStore.children.length > 0) {
+      parentStore.selectChild(parentStore.children[0].id)
+      await parentStore.fetchChildProgress(parentStore.selectedChild.id)
+      await parentStore.fetchChildAttendance(parentStore.selectedChild.id, currentMonth.value + 1, currentYear.value)
+      achievements.value = await parentStore.getChildAchievements(parentStore.selectedChild.id)
+      // TODO: Fetch other data like recent workouts, etc.
+    }
+    await parentStore.fetchNotifications(userStore.currentUser.id)
+  }
+  
+  renderCharts()
+});
+
+function renderCharts() {
+    if (attendanceChartEl.value) {
     new Chart(attendanceChartEl.value, {
       type: 'line',
-      data: attendanceData.value,
+      data: {
+        labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+        datasets: [{
+          label: 'Посещаемость',
+          data: [80, 85, 90, 88, 92, 95, 93, 96, 94, 97, 98, 100],
+          borderColor: '#4CAF50',
+          tension: 0.4
+        }]
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -292,7 +338,15 @@ onMounted(() => {
   if (progressChartEl.value) {
     new Chart(progressChartEl.value, {
       type: 'line',
-      data: progressData.value,
+      data: {
+        labels: ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'],
+        datasets: [{
+            label: 'Общий прогресс',
+            data: [20, 25, 35, 40, 50, 55, 65, 70, 75, 80, 85, 90],
+            borderColor: '#2196F3',
+            tension: 0.4
+        }]
+      },
       options: {
         responsive: true,
         maintainAspectRatio: false,
@@ -317,7 +371,40 @@ onMounted(() => {
       }
     });
   }
-});
+}
+
+function prevMonth() {
+  if (currentMonth.value === 0) {
+    currentMonth.value = 11;
+    currentYear.value--;
+  } else {
+    currentMonth.value--;
+  }
+  parentStore.fetchChildAttendance(parentStore.selectedChild.id, currentMonth.value + 1, currentYear.value)
+}
+
+function nextMonth() {
+  if (currentMonth.value === 11) {
+    currentMonth.value = 0;
+    currentYear.value++;
+  } else {
+    currentMonth.value++;
+  }
+  parentStore.fetchChildAttendance(parentStore.selectedChild.id, currentMonth.value + 1, currentYear.value)
+}
+
+function formatDate(date, format) {
+    // Helper function to format dates
+    return date
+}
+
+async function contactTrainer() {
+    const message = prompt('Введите ваше сообщение тренеру:')
+    if (message) {
+        await parentStore.sendMessageToTrainer(parentStore.selectedChild.id, message)
+        alert('Сообщение отправлено!')
+    }
+}
 </script>
 
 <style scoped>

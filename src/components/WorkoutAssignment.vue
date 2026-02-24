@@ -9,33 +9,35 @@
 
       <label for="workout">Select Workout:</label>
       <select id="workout" v-model="selectedWorkout">
-        <option v-for="workout in workouts" :key="workout.id" :value="workout.id">{{ workout.name }}</option>
+        <option v-for="workout in workoutStore.workouts" :key="workout.id" :value="workout.id">{{ workout.name }}</option>
       </select>
 
-      <button type="submit">Assign Workout</button>
+      <button type="submit" :disabled="workoutStore.loading">{{ workoutStore.loading ? 'Assigning...' : 'Assign Workout' }}</button>
     </form>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useWorkoutStore } from '@/store/workouts'
+import { useWorkoutStore } from '@/store/workout'
+import { useUserStore } from '@/store/user'
 
 const workoutStore = useWorkoutStore()
+const userStore = useUserStore()
 
 const selectedClient = ref(null)
 const selectedWorkout = ref(null)
 const clients = ref([])
-const workouts = ref([])
 
 onMounted(async () => {
-  clients.value = await workoutStore.fetchClients()
-  workouts.value = await workoutStore.fetchWorkouts()
+  // Assuming you have a way to get clients, maybe from the user store?
+  // clients.value = await userStore.fetchClients() 
+  await workoutStore.fetchWorkouts(userStore.currentUser.id)
 })
 
 const assignWorkout = () => {
   if (selectedClient.value && selectedWorkout.value) {
-    workoutStore.assignWorkout(selectedClient.value, selectedWorkout.value)
+    workoutStore.scheduleWorkout({ userId: selectedClient.value, workoutId: selectedWorkout.value })
   }
 }
 </script>

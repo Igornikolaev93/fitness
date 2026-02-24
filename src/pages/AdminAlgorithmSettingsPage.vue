@@ -29,7 +29,7 @@
       </div>
 
       <div class="algorithms-grid">
-        <div v-for="algorithm in algorithms" :key="algorithm.id" class="algorithm-card">
+        <div v-for="algorithm in algorithmStore.algorithms" :key="algorithm.id" class="algorithm-card">
           <div class="algorithm-header">
             <div class="algorithm-status" :class="{ active: algorithm.active }">
               {{ algorithm.active ? 'Активен' : 'Неактивен' }}
@@ -51,7 +51,7 @@
             <button class="btn btn-outline" @click="openEditModal('algorithm', algorithm)">
               <i class="fas fa-edit"></i> Редактировать
             </button>
-            <button class="btn btn-outline" @click="store.toggleAlgorithm(algorithm)">
+            <button class="btn btn-outline" @click="algorithmStore.toggleAlgorithm(algorithm.id)">
               <i class="fas" :class="algorithm.active ? 'fa-pause' : 'fa-play'"></i>
               {{ algorithm.active ? 'Деактивировать' : 'Активировать' }}
             </button>
@@ -73,7 +73,7 @@
       </div>
 
       <div class="factors-list">
-        <div v-for="factor in factors" :key="factor.id" class="factor-item">
+        <div v-for="factor in algorithmStore.factors" :key="factor.id" class="factor-item">
           <div class="factor-info">
             <div class="factor-icon" :style="{ backgroundColor: factor.color + '20' }">
               <i :class="factor.icon" :style="{ color: factor.color }"></i>
@@ -139,7 +139,7 @@
       </div>
 
       <div class="rules-list">
-        <div v-for="rule in rules" :key="rule.id" class="rule-item">
+        <div v-for="rule in algorithmStore.rules" :key="rule.id" class="rule-item">
           <div class="rule-header">
             <h4>{{ rule.name }}</h4>
             <div class="rule-status" :class="{ active: rule.active }">
@@ -161,7 +161,7 @@
             <button class="btn btn-outline" @click="openEditModal('rule', rule)">
               <i class="fas fa-edit"></i>
             </button>
-            <button class="btn btn-outline" @click="store.toggleRule(rule)">
+            <button class="btn btn-outline" @click="algorithmStore.toggleRule(rule.id)">
               <i class="fas" :class="rule.active ? 'fa-pause' : 'fa-play'"></i>
             </button>
             <button class="btn btn-outline-danger" @click="handleDeleteRule(rule)">
@@ -177,7 +177,7 @@
       <h2>История изменений алгоритмов</h2>
       
       <div class="history-timeline">
-        <div v-for="change in history" :key="change.id" class="history-item">
+        <div v-for="change in algorithmStore.algorithmHistory" :key="change.id" class="history-item">
           <div class="history-date">{{ formatDate(change.timestamp) }}</div>
           <div class="history-content">
             <div class="history-user">
@@ -272,11 +272,9 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useAdminStore } from '@/store/admin'
-import { storeToRefs } from 'pinia'
+import { useAlgorithmStore } from '@/store/algorithm'
 
-const store = useAdminStore()
-const { algorithms, factors, rules, history } = storeToRefs(store)
+const algorithmStore = useAlgorithmStore()
 
 const activeTab = ref('algorithms')
 const showModal = ref(false)
@@ -328,9 +326,9 @@ const saveModal = async () => {
       delete data.paramsJson
 
       if (modalMode.value === 'add') {
-        await store.addAlgorithm({ ...data, id: Date.now(), active: true })
+        await algorithmStore.createAlgorithm({ ...data, id: Date.now(), active: true })
       } else {
-        await store.updateAlgorithm(data)
+        await algorithmStore.updateAlgorithm(data.id, data)
       }
     } catch (e) {
       alert('Неверный формат JSON для параметров')
@@ -339,16 +337,16 @@ const saveModal = async () => {
   } else if (modalType.value === 'factor') {
     const data = { ...modalData.value }
     if (modalMode.value === 'add') {
-      await store.addFactor({ ...data, id: Date.now() })
+      await algorithmStore.createFactor({ ...data, id: Date.now() })
     } else {
-      await store.updateFactor(data)
+      await algorithmStore.updateFactor(data.id, data)
     }
   } else if (modalType.value === 'rule') {
     const data = { ...modalData.value }
     if (modalMode.value === 'add') {
-      await store.addRule({ ...data, id: Date.now() })
+      await algorithmStore.createRule({ ...data, id: Date.now() })
     } else {
-      await store.updateRule(data)
+      await algorithmStore.updateRule(data.id, data)
     }
   }
   
@@ -357,25 +355,25 @@ const saveModal = async () => {
 
 const handleDeleteAlgorithm = async (algorithm) => {
   if (confirm(`Удалить алгоритм "${algorithm.name}"?`)) {
-    await store.deleteAlgorithm(algorithm)
+    await algorithmStore.deleteAlgorithm(algorithm.id)
   }
 }
 
 const handleDeleteFactor = async (factor) => {
   if (confirm(`Удалить фактор "${factor.name}"?`)) {
-    await store.deleteFactor(factor)
+    await algorithmStore.deleteFactor(factor.id)
   }
 }
 
 const handleDeleteRule = async (rule) => {
   if (confirm(`Удалить правило "${rule.name}"?`)) {
-    await store.deleteRule(rule)
+    await algorithmStore.deleteRule(rule.id)
   }
 }
 
 const updateFactorField = (factor, field, value) => {
   const updatedFactor = { ...factor, [field]: value };
-  store.updateFactor(updatedFactor);
+  algorithmStore.updateFactor(updatedFactor.id, updatedFactor);
 };
 
 const formatParamName = (key) => {
@@ -404,10 +402,10 @@ const formatDate = (date) => {
 
 // Инициализация
 onMounted(() => {
-  store.loadAlgorithms()
-  store.loadFactors()
-  store.loadRules()
-  store.loadHistory()
+  algorithmStore.fetchAlgorithms()
+  algorithmStore.fetchFactors()
+  algorithmStore.fetchRules()
+  algorithmStore.fetchAlgorithmHistory()
 })
 </script>
 

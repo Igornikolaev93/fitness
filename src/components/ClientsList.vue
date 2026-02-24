@@ -2,7 +2,7 @@
   <div>
     <h2>Clients</h2>
     <ul>
-      <li v-for="client in clients" :key="client.id">
+      <li v-for="client in trainerStore.clients" :key="client.id">
         {{ client.name }}
       </li>
     </ul>
@@ -10,13 +10,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useWorkoutStore } from '@/store/workouts'
+import { onMounted } from 'vue'
+import { useTrainerStore } from '@/store/trainer'
+import { useUserStore } from '@/store/user'
 
-const workoutStore = useWorkoutStore()
-const clients = ref([])
+const trainerStore = useTrainerStore();
+const userStore = useUserStore();
 
 onMounted(async () => {
-  clients.value = await workoutStore.fetchClients()
+  if (userStore.currentUser?.id) {
+    await trainerStore.fetchClients(userStore.currentUser.id)
+  }
 })
 </script>
