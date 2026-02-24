@@ -8,7 +8,7 @@
 </template>
 
 <script setup>
-import { useWorkoutStore } from '@/store/workouts'
+import { useWorkoutStore } from '@/store/workout'
 import ExerciseForm from '@/components/ExerciseForm.vue'
 import ExerciseList from '@/components/ExerciseList.vue'
 
