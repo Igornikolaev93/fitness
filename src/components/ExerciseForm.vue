@@ -1,1 +1,20 @@
-<template>\n  <form @submit.prevent=\"addExercise\">\n    <input type=\"text\" v-model=\"exerciseName\" placeholder=\"Exercise Name\">\n    <button type=\"submit\">Add Exercise</button>\n  </form>\n</template>\n\n<script setup>\nimport { ref } from \'vue\'\n\nconst exerciseName = ref(\'\')\nconst emit = defineEmits([\'add-exercise\'])\n\nconst addExercise = () => {\n  if (exerciseName.value.trim()) {\n    emit(\'add-exercise\', exerciseName.value.trim())\n    exerciseName.value = \'\'\n  }\n}\n</script>
+<template>
+  <form @submit.prevent="addExercise">
+    <input type="text" v-model="exerciseName" placeholder="Exercise Name">
+    <button type="submit">Add Exercise</button>
+  </form>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+
+const exerciseName = ref('')
+const emit = defineEmits(['add-exercise'])
+
+const addExercise = () => {
+  if (exerciseName.value.trim()) {
+    emit('add-exercise', exerciseName.value.trim())
+    exerciseName.value = ''
+  }
+}
+</script>
